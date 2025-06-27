@@ -1623,14 +1623,12 @@ func TestBufferInsertWithDuplicate(t *testing.T) {
 		i++
 
 		// insert batch
-		if i%batchSize == 0 {
-			log.Printf("insert batch %d, contains %d records", i/batchSize, len(tests))
-			err := processor.InsertV2(fmt.Sprintf("%d", fileID), routingID, tests)
-			if err != nil {
-				t.Errorf("failed to insert data: %v", err)
-			}
-			tests = nil // clear the list, prepare for the next batch
+		err = processor.InsertV2(fmt.Sprintf("%d", fileID), routingID, tests)
+		if err != nil {
+			t.Errorf("failed to insert data: %v", err)
 		}
+		tests = nil // clear the list, prepare for the next batch
+
 	}
 
 	for _, test := range tests {

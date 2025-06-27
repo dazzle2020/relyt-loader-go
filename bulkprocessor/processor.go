@@ -658,7 +658,7 @@ func (p *BulkProcessor) Flush() error {
 				p.bufferManager.bufferOperationsMutex.Unlock()
 
 				// deduplicate records
-				deletedRecords := currentBuffer.DeduplicateRecords()
+				deletedRecords := currentBuffer.DeduplicateRecords(len(p.pkColumns) > 0, p.versionColIndex >= 0)
 
 				// write to local file
 				if currentBuffer.GetRecordCount() > 0 {
@@ -1049,12 +1049,6 @@ func (p *BulkProcessor) BGWorkerThread() {
 			log.Printf("BGWORKER: Found %d files in %s", len(files), dirPath)
 		}
 
-		if len(files) > 0 {
-			log.Printf("BGWORKER: Found %d files in %s", len(files), dirPath)
-		} else {
-			log.Printf("BGWORKER: No files found in %s", dirPath)
-		}
-
 		time.Sleep(time.Duration(p.config.BGWorkerInterval) * time.Second)
 	}
 }
@@ -1249,7 +1243,7 @@ func (p *BulkProcessor) InsertV2(fileID, routingID string, records interface{}, 
 			p.versionColIndex = GetColumnIndex(p.fields, "version")
 		}
 
-		if p.pkColumnsIndex == nil {
+		if p.pkColumnsIndex == nil && len(p.pkColumns) > 0 {
 			p.pkColumnsIndex = make([]int, len(p.pkColumns))
 			for i, columnName := range p.pkColumns {
 				p.pkColumnsIndex[i] = GetColumnIndex(p.fields, columnName)
@@ -1471,7 +1465,7 @@ func (p *BulkProcessor) InsertThreadV2() {
 				versionMap = make(map[RecordIndex]string)
 
 				// deduplicate records
-				deletedRecords := currentBuffer.DeduplicateRecords()
+				deletedRecords := currentBuffer.DeduplicateRecords(len(p.pkColumns) > 0, p.versionColIndex >= 0)
 
 				// write to local file
 				if currentBuffer.GetRecordCount() > 0 {
